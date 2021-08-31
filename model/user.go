@@ -27,3 +27,11 @@ func (user *User) BeforeUpdate(db *gorm.DB) (err error) {
 
 	return
 }
+
+func (user *User) FindUser(db *gorm.DB, username interface{}) error {
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
+		return err
+	} else {
+		return err
+	}
+}

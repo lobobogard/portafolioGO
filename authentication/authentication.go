@@ -12,6 +12,7 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/golang-jwt/jwt/request"
 	"github.com/portafolioLP/model"
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -57,8 +58,10 @@ func Login(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	if validateUser(user, userDB.Password) {
 		user.Password = ""
 		user.Role = userDB.Role
-		token := GenerateJWT(user)
-		result := model.ResponseToken{Token: token}
+		token := GenerateJWT(user, 5)
+		tokenRefresh := GenerateRefreshJWT(user, 15)
+		model.RedisRefreshToken(user, tokenRefresh)
+		result := model.ResponseToken{Token: token, TokenRefresh: tokenRefresh}
 		jsonResult, err := json.Marshal(result)
 		if err != nil {
 			fmt.Fprintf(w, "Error al generar el json")
@@ -79,17 +82,39 @@ func validateUser(user model.User, password string) bool {
 	return match
 }
 
-func GenerateJWT(user model.User) string {
+func GenerateJWT(user model.User, timeExpire time.Duration) string {
 	claims := model.Claim{
 		User: user,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * 4).Unix(),
+			ExpiresAt: time.Now().Add(time.Minute * timeExpire).Unix(),
 			Issuer:    "Accesso Portafolio",
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	fmt.Println("claim", token)
+	result, err := token.SignedString(privateKey)
+	if err != nil {
+		fmt.Println(err)
+		log.Fatal("no se pudo firmar el token", err)
+	}
+
+	//redisRefreshToken(user, token)
+	return result
+
+}
+
+func GenerateRefreshJWT(user model.User, timeExpire time.Duration) string {
+	uuid := uuid.NewV4().String()
+	claims := model.ClaimRefreshToken{
+		Username:    user.Username,
+		RefreshUuid: uuid,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Minute * timeExpire).Unix(),
+			Issuer:    "Refresh Token",
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	result, err := token.SignedString(privateKey)
 	if err != nil {
 		fmt.Println(err)
@@ -142,4 +167,8 @@ func HashPassword(password string) (string, error) {
 func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
+}
+
+func GetPublicKey() *rsa.PublicKey {
+	return publicKey
 }
