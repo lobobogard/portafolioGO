@@ -12,26 +12,25 @@ import (
 )
 
 func User(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	user := &model.User{}
+	UserFormData := &model.UserFormData{}
 
 	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(user); err != nil {
+	if err := decoder.Decode(UserFormData); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	defer r.Body.Close()
 
-	if err := validate.ValidateStruct(user, w, r); err != nil {
+	if err := validate.Validate(UserFormData, w, r); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := DB.Create(&user).Error; err != nil {
-		fmt.Println(user.Username)
+	if err := DB.Create(&UserFormData.User).Error; err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respondJSON(w, http.StatusCreated, user)
+	respondJSON(w, http.StatusCreated, UserFormData.User.Username)
 }
 
 func GetAllUsers(db *gorm.DB, w http.ResponseWriter, r *http.Request) {

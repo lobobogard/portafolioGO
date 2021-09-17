@@ -3,8 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"net/http"
 
 	"github.com/golang-jwt/jwt"
@@ -18,38 +16,28 @@ type TokenRefresh struct {
 }
 
 func ValidateTokenRefresh(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
-
-	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	cookie, err := r.Cookie("tokenRefresh")
 	if err != nil {
-		log.Printf("Reading body fail")
-	}
-
-	tokenBody := TokenRefresh{}
-	err = json.Unmarshal(body, &tokenBody)
-	if err != nil {
-		log.Printf("Reading body failed: %s", err)
+		jsonStatusUnauthorized("Not found cookie", w)
 		return
 	}
-
-	tokenStr := tokenBody.Token
+	tokenStr := cookie.Value
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		return authentication.GetPublicKey(), nil
 	})
 	claims, ok := token.Claims.(jwt.MapClaims)
+	username := fmt.Sprintf("%v", claims["username"])
 
 	if ok && token.Valid {
 		var user model.User
 		if user.FindUser(db, claims["username"]) != nil {
-			fmt.Fprintf(w, "User not Found")
+			jsonStatusUnauthorized("User not Exist", w)
 			return
 		}
 	}
 
-	username := fmt.Sprintf("%v", claims["username"])
-	fmt.Println(model.ExistUserRedisToken(username, tokenBody.Token))
-	if model.ExistUserRedisToken(username, tokenBody.Token) {
-		fmt.Fprintf(w, "Su tokenRefresh Unauthorized")
+	if model.ExistUserRedisToken(username, tokenStr) {
+		jsonStatusUnauthorized("TokenRefresh Unauthorized", w)
 		return
 	}
 
@@ -59,25 +47,24 @@ func ValidateTokenRefresh(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 			vErr := err.(*jwt.ValidationError)
 			switch vErr.Errors {
 			case jwt.ValidationErrorExpired:
-				fmt.Fprintf(w, "Su tokenRefresh ha expirado")
+				jsonStatusUnauthorized("Your tokenRefresh has expired", w)
 				return
 			case jwt.ValidationErrorSignatureInvalid:
-				fmt.Fprintf(w, "La firma del tokenRefresh no coincide")
+				jsonStatusUnauthorized("TokenRefresh signature does not match", w)
 				return
 			default:
-				fmt.Fprintf(w, "Su tokenRefresh no es valido")
+				jsonStatusUnauthorized("Your tokenRefresh is not valid", w)
 				return
 			}
 		default:
-			fmt.Fprintf(w, "Su tokenRefresh no es valido")
+			jsonStatusUnauthorized("Your tokenRefresh is not valid", w)
 			return
 		}
 	}
 	if token.Valid {
 		regenerateToken(db, username, w)
 	} else {
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprintf(w, "Unauthorized")
+		jsonStatusUnauthorized("Unauthorized", w)
 	}
 }
 
@@ -87,10 +74,10 @@ func regenerateToken(db *gorm.DB, username string, w http.ResponseWriter) {
 	db.Where("username = ?", username).First(&userDB)
 	user.Password = ""
 	user.Role = userDB.Role
-	token := authentication.GenerateJWT(user, 5)
-	tokenRefresh := authentication.GenerateRefreshJWT(user, 15)
+	token := authentication.GenerateJWT(user)
+	tokenRefresh := authentication.GenerateRefreshJWT(w, userDB)
 	model.RedisRefreshToken(user, tokenRefresh)
-	result := model.ResponseToken{Token: token, TokenRefresh: tokenRefresh}
+	result := model.ResponseToken{Token: token}
 	jsonResult, err := json.Marshal(result)
 	if err != nil {
 		fmt.Fprintf(w, "Error al generar el json")
@@ -101,3 +88,35 @@ func regenerateToken(db *gorm.DB, username string, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonResult)
 }
+
+func jsonStatusUnauthorized(result string, w http.ResponseWriter) {
+	jsonResult, err := json.Marshal(result)
+	if err != nil {
+		fmt.Fprintf(w, "Error al generar el json")
+		return
+	}
+	w.WriteHeader(http.StatusUnauthorized)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonResult)
+}
+
+// func GetUserNameToken(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+// 	defer r.Body.Close()
+// 	body, err := ioutil.ReadAll(r.Body)
+// 	if err != nil {
+// 		log.Printf("Reading body fail")
+// 	}
+
+// 	tokenBody := TokenRefresh{}
+// 	err = json.Unmarshal(body, &tokenBody)
+// 	if err != nil {
+// 		log.Printf("Reading body failed: %s", err)
+// 	}
+
+// 	tokenStr := tokenBody.Token
+// 	token, _ := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+// 		return authentication.GetPublicKey(), nil
+// 	})
+// 	claims, _ := token.Claims.(jwt.MapClaims)
+// 	return claims["username"], nil
+// }

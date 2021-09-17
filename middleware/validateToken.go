@@ -10,10 +10,13 @@ import (
 	"github.com/portafolioLP/model"
 )
 
-func ValidateToken(w http.ResponseWriter, r *http.Request) bool {
+func ValidateToken(w http.ResponseWriter, r *http.Request) (bool, string) {
+	var mensaje string
 	token, err := request.ParseFromRequestWithClaims(r, request.OAuth2Extractor, &model.Claim{}, func(token *jwt.Token) (interface{}, error) {
 		return authentication.GetPublicKey(), nil
 	})
+
+	fmt.Println(token)
 
 	if err != nil {
 		switch err.(type) {
@@ -21,27 +24,25 @@ func ValidateToken(w http.ResponseWriter, r *http.Request) bool {
 			vErr := err.(*jwt.ValidationError)
 			switch vErr.Errors {
 			case jwt.ValidationErrorExpired:
-				fmt.Fprintf(w, "Su token ha expirado")
-				return false
+				mensaje = "Your token has expired"
+				return false, mensaje
 			case jwt.ValidationErrorSignatureInvalid:
-				fmt.Fprintf(w, "La firma del token no coincide")
-				return false
+				mensaje = "Token signature does not match"
+				return false, mensaje
 			default:
-				fmt.Fprintf(w, "Su token no es valido")
-				return false
+				mensaje = "Your token is not valid"
+				return false, mensaje
 			}
 		default:
-			fmt.Fprintf(w, "Su token no es valido")
-			return false
+			mensaje = "Your token is not valid"
+			return false, mensaje
 		}
 	}
 	if token.Valid {
-		w.WriteHeader(http.StatusAccepted)
-		// fmt.Fprintf(w, "Accepted")
-		return true
+		mensaje = "correct"
+		return true, mensaje
 	} else {
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprintf(w, "Unauthorized")
-		return false
+		mensaje = "Unauthorized"
+		return false, mensaje
 	}
 }

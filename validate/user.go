@@ -1,6 +1,7 @@
 package validate
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -10,14 +11,33 @@ import (
 
 var validate *validator.Validate
 
-func Validate(user model.User) {
+func Validate(UserFormData *model.UserFormData, w http.ResponseWriter, r *http.Request) error {
 	validate = validator.New()
-	myUsername := user.Username
-	errs := validate.Var(myUsername, "required")
 
-	if errs != nil {
-		fmt.Println(errs) // output: Key: "" Error:Field validation for "" failed on the "email" tag
+	myUsername := UserFormData.Username
+	err := validate.Var(myUsername, "required")
+	if err != nil {
+		return errors.New("the user name is required")
 	}
+
+	myPassword := UserFormData.Pass
+	fmt.Println(myPassword)
+	err = validate.Var(myPassword, "required")
+	if err != nil {
+		return errors.New("the password is required")
+	}
+
+	myConfirmPassword := UserFormData.ConfirmPass
+	err = validate.Var(myConfirmPassword, "required")
+	if err != nil {
+		return errors.New("the confirm password is required")
+	}
+
+	if myPassword != myConfirmPassword {
+		return errors.New("the confirm password and password are diff")
+	}
+
+	return err
 }
 
 func ValidateStruct(user *model.User, w http.ResponseWriter, r *http.Request) error {

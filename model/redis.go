@@ -2,7 +2,6 @@ package model
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/portafolioLP/db"
 )
@@ -17,11 +16,19 @@ func RedisRefreshToken(user User, token string) {
 		panic(err)
 	}
 
-	val, err := rdb.Get(Ctx, user.Username).Result()
+	// val, err := rdb.Get(Ctx, user.Username).Result()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println(user.Username, val)
+}
+
+func RedisDeleteRefreshToken(username string) {
+	rdb := db.Rdb()
+	err := rdb.Del(Ctx, username).Err()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(user.Username, val)
 }
 
 func ExistUserRedisToken(username string, token string) bool {
