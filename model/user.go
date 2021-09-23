@@ -19,7 +19,7 @@ type UserFormData struct {
 }
 
 func (user *User) BeforeCreate(db *gorm.DB) (err error) {
-	if pw, err := bcrypt.GenerateFromPassword([]byte(user.Password), 0); err == nil {
+	if pw, err := bcrypt.GenerateFromPassword([]byte(string(user.Password)), 14); err == nil {
 		user.Password = string(pw)
 	}
 
@@ -27,7 +27,7 @@ func (user *User) BeforeCreate(db *gorm.DB) (err error) {
 }
 
 func (user *User) BeforeUpdate(db *gorm.DB) (err error) {
-	if pw, err := bcrypt.GenerateFromPassword([]byte(user.Password), 0); err == nil {
+	if pw, err := bcrypt.GenerateFromPassword([]byte(user.Password), 14); err == nil {
 		user.Password = string(pw)
 	}
 

@@ -21,11 +21,12 @@ func User(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if err := validate.Validate(UserFormData, w, r); err != nil {
+	if err := validate.ValidateUser(UserFormData, w, r); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	UserFormData.User.Password = UserFormData.ConfirmPass
 	if err := DB.Create(&UserFormData.User).Error; err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return

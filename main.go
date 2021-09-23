@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -35,7 +34,8 @@ func database() *gorm.DB {
 	Env := env.Env()
 	dbConfig := libs.Configure(Env)
 	DB := dbConfig.InitMysqlDB()
-	DB.AutoMigrate(model.User{}, model.Company{}, model.Perfil{})
+	// DB.AutoMigrate(model.User{}, model.Company{}, model.Perfil{}, model.CatCountry{})
+	DB.AutoMigrate(model.User{}, model.Company{}, model.CatCountry{})
 	return DB
 }
 
@@ -53,6 +53,12 @@ func main() {
 	app.Router.HandleFunc("/validate", app.validate).Methods("GET")
 
 	app.Router.HandleFunc("/tokenRefresh", app.tokenRefresh).Methods("POST")
+	app.Router.HandleFunc("/deleteTokenRefreshRedis", app.deleteTokenRefreshRedis).Methods("POST")
+	app.Router.HandleFunc("/validate", app.validate).Methods("POST")
+
+	app.Router.HandleFunc("/cataloguePerfil", logging(app.cataloguePerfil)).Methods("GET")
+	app.Router.HandleFunc("/company", app.createCompany).Methods("POST")
+
 	http.Handle("/", app.Router)
 	// db.Conexion(app.Router)
 
@@ -69,14 +75,26 @@ func logging(next http.HandlerFunc) http.HandlerFunc {
 		var datos Data
 		datos.Validate, datos.Mensaje = middleware.ValidateToken(w, r)
 		if datos.Validate {
-			fmt.Println(datos.Mensaje)
+			// fmt.Println(datos.Mensaje)
 			next.ServeHTTP(w, r)
 		} else {
-			w.WriteHeader(200)
+			w.WriteHeader(http.StatusUnauthorized)
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(datos)
 		}
 	}
+}
+
+func (a *App) createCompany(w http.ResponseWriter, r *http.Request) {
+	handler.CreateCompany(a.DB, w, r)
+}
+
+func (a *App) cataloguePerfil(w http.ResponseWriter, r *http.Request) {
+	handler.CataloguePerfil(a.DB, w, r)
+}
+
+func (a *App) deleteTokenRefreshRedis(w http.ResponseWriter, r *http.Request) {
+	handler.DeleteTokenRefreshRedis(a.DB, w, r)
 }
 
 func (a *App) tokenRefresh(w http.ResponseWriter, r *http.Request) {

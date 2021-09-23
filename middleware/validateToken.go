@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/golang-jwt/jwt"
@@ -15,8 +14,6 @@ func ValidateToken(w http.ResponseWriter, r *http.Request) (bool, string) {
 	token, err := request.ParseFromRequestWithClaims(r, request.OAuth2Extractor, &model.Claim{}, func(token *jwt.Token) (interface{}, error) {
 		return authentication.GetPublicKey(), nil
 	})
-
-	fmt.Println(token)
 
 	if err != nil {
 		switch err.(type) {

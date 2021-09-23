@@ -11,7 +11,7 @@ import (
 
 var validate *validator.Validate
 
-func Validate(UserFormData *model.UserFormData, w http.ResponseWriter, r *http.Request) error {
+func ValidateUser(UserFormData *model.UserFormData, w http.ResponseWriter, r *http.Request) error {
 	validate = validator.New()
 
 	myUsername := UserFormData.Username
