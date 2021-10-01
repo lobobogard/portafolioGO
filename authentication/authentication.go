@@ -97,7 +97,7 @@ func GenerateJWT(user model.User) string {
 	claims := model.Claim{
 		User: user,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * 1).Unix(),
+			ExpiresAt: time.Now().Add(time.Minute * 600).Unix(), // 1 minute
 			Issuer:    "Access Token",
 			Id:        user.Username,
 		},
@@ -121,7 +121,7 @@ func GenerateRefreshJWT(w http.ResponseWriter, user model.User) string {
 		Username:    user.Username,
 		RefreshUuid: uuid,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * 5).Unix(),
+			ExpiresAt: time.Now().Add(time.Minute * 600).Unix(), // 5 minute
 			Issuer:    "Refresh Token",
 		},
 	}

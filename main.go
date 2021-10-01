@@ -35,7 +35,12 @@ func database() *gorm.DB {
 	dbConfig := libs.Configure(Env)
 	DB := dbConfig.InitMysqlDB()
 	// DB.AutoMigrate(model.User{}, model.Company{}, model.Perfil{}, model.CatCountry{})
-	DB.AutoMigrate(model.User{}, model.Company{}, model.CatCountry{})
+	DB.AutoMigrate(
+		model.User{}, model.Company{}, model.Perfil{}, model.CatCountry{},
+		model.CatServer{}, model.CatSystemOperative{}, model.CatBackEnd{},
+		model.CatFrontEnd{}, model.DataBase{}, model.BackEnd{}, model.FrontEnd{},
+		model.Servers{},
+	)
 	return DB
 }
 
@@ -56,41 +61,64 @@ func main() {
 	app.Router.HandleFunc("/deleteTokenRefreshRedis", app.deleteTokenRefreshRedis).Methods("POST")
 	app.Router.HandleFunc("/validate", app.validate).Methods("POST")
 
+	// company
 	app.Router.HandleFunc("/cataloguePerfil", logging(app.cataloguePerfil)).Methods("GET")
-	app.Router.HandleFunc("/company", app.createCompany).Methods("POST")
+	app.Router.HandleFunc("/catalogueCompany", logging(app.catalogueCompany)).Methods("GET")
+	app.Router.HandleFunc("/company", logging(app.createCompany)).Methods("POST")
+
+	// perfil
+	app.Router.HandleFunc("/perfil", logging(app.createPerfil)).Methods("POST")
 
 	http.Handle("/", app.Router)
 	// db.Conexion(app.Router)
 
-	header := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization", "Access-Control-Allow-Credentials", "Access-Control-Allow-Origin"})
-	methods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
-	origin := handlers.AllowedOrigins([]string{"http://localhost:8080"})
-	creds := handlers.AllowCredentials()
+	header, methods, origin, creds := cors()
 	log.Fatal(http.ListenAndServe(":3000", handlers.CORS(header, methods, origin, creds)(app.Router)))
 
 }
 
-func logging(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var datos Data
-		datos.Validate, datos.Mensaje = middleware.ValidateToken(w, r)
-		if datos.Validate {
-			// fmt.Println(datos.Mensaje)
-			next.ServeHTTP(w, r)
-		} else {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(datos)
-		}
-	}
+type prueba struct {
+	Dato1 string `json:"lobox"`
+	Name  string
+	Edad  int
 }
 
-func (a *App) createCompany(w http.ResponseWriter, r *http.Request) {
-	handler.CreateCompany(a.DB, w, r)
+// func (a *App) createPerfil(w http.ResponseWriter, r *http.Request) {
+// 	body, err := ioutil.ReadAll(r.Body)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	var t prueba
+// 	err = json.Unmarshal(body, &t)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	fmt.Println("body", t)
+// 	prueba := [3]string{"cosas", "migas", "helos"}
+// 	value, _ := json.Marshal(prueba)
+// 	fmt.Println("result", value)
+// 	// w.Header().Set("Content-Type", "application/json")
+// 	w.WriteHeader(http.StatusAccepted)
+// 	w.Write(value)
+// 	// fmt.Println(value)
+// 	// handler.RespondJSON2(w, http.StatusAccepted, t)
+// 	// handler.CreateCompany(a.DB, w, r)
+// }
+
+func (a *App) createPerfil(w http.ResponseWriter, r *http.Request) {
+	handler.CreatePerfil(a.DB, w, r)
 }
 
 func (a *App) cataloguePerfil(w http.ResponseWriter, r *http.Request) {
 	handler.CataloguePerfil(a.DB, w, r)
+}
+
+func (a *App) catalogueCompany(w http.ResponseWriter, r *http.Request) {
+	handler.CatalogueCompany(a.DB, w, r)
+}
+
+func (a *App) createCompany(w http.ResponseWriter, r *http.Request) {
+	handler.CreateCompany(a.DB, w, r)
 }
 
 func (a *App) deleteTokenRefreshRedis(w http.ResponseWriter, r *http.Request) {
@@ -132,6 +160,29 @@ func (a *App) updateUser(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) deleteUser(w http.ResponseWriter, r *http.Request) {
 	handler.DeleteUser(a.DB, w, r)
+}
+
+func cors() (handlers.CORSOption, handlers.CORSOption, handlers.CORSOption, handlers.CORSOption) {
+	enviroment := env.Env()
+	header := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization", "Access-Control-Allow-Credentials", "Access-Control-Allow-Origin"})
+	methods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
+	origin := handlers.AllowedOrigins([]string{enviroment["ALLOWEDORIGINS"]})
+	creds := handlers.AllowCredentials()
+	return header, methods, origin, creds
+}
+
+func logging(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var datos Data
+		datos.Validate, datos.Mensaje = middleware.ValidateToken(w, r)
+		if datos.Validate {
+			next.ServeHTTP(w, r)
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(datos)
+		}
+	}
 }
 
 // func setupResponse(w *http.ResponseWriter, req *http.Request) {

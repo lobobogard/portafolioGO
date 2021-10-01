@@ -74,6 +74,7 @@ func regenerateToken(db *gorm.DB, username string, w http.ResponseWriter) {
 	db.Where("username = ?", username).First(&userDB)
 	user.Password = ""
 	user.Role = userDB.Role
+	user.Username = userDB.Username
 	token := authentication.GenerateJWT(user)
 	tokenRefresh := authentication.GenerateRefreshJWT(w, userDB)
 	model.RedisRefreshToken(user, tokenRefresh)

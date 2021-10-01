@@ -10,7 +10,13 @@ import (
 )
 
 func CreateCompany(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	userJWT := DecodeSessionUserJWT(w, r)
+
+	var user model.User
+	DB.First(&user, "username = ?", userJWT.Username)
+
 	CompanyFormData := &model.Company{}
+	CompanyFormData.UserID = user.ID
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(CompanyFormData); err != nil {
@@ -27,5 +33,5 @@ func CreateCompany(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respondJSON(w, http.StatusCreated, CompanyFormData)
+	respondJSON(w, http.StatusCreated, "Created company success")
 }
