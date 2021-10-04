@@ -25,7 +25,7 @@ func CreateCompany(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if err := validate.ValidatePerfil(CompanyFormData, w, r); err != nil {
+	if err := validate.ValidateCompany(CompanyFormData, w, r); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}

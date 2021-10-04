@@ -7,23 +7,12 @@ import (
 	"reflect"
 
 	"github.com/portafolioLP/model"
+	"github.com/portafolioLP/validate"
 	"gorm.io/gorm"
 )
 
-type ReqPerfil struct {
-	CompanyID         uint
-	SystemOperativeID uint
-	Server            []uint
-	Mysql             bool
-	Mariadb           bool
-	Postgresql        bool
-	Mongodb           bool
-	Redis             bool
-	Sqlite            bool
-}
-
 func CreatePerfil(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	PerfilFormData := &ReqPerfil{}
+	PerfilFormData := &model.ReqPerfil{}
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(PerfilFormData); err != nil {
@@ -31,18 +20,17 @@ func CreatePerfil(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	message, httpStatus := savePerfil(DB, w, r, PerfilFormData)
 
-	respondJSON(w, httpStatus, message)
-	// respondJSON(w, http.StatusAccepted, "correcto")
+	if err := validate.ValidatePerfil(PerfilFormData, w, r); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+	} else {
+		message, httpStatus := savePerfil(DB, w, r, PerfilFormData)
+		respondJSON(w, httpStatus, message)
+		// respondJSON(w, http.StatusAccepted, "the profile was created successfully")
+	}
 }
 
-func savePerfil(DB *gorm.DB, w http.ResponseWriter, r *http.Request, PerfilFormData *ReqPerfil) (string, int) {
-
-	// if err := validate.ValidatePerfil(CompanyFormData, w, r); err != nil {
-	// 	respondError(w, http.StatusBadRequest, err.Error())
-	// 	return
-	// }
+func savePerfil(DB *gorm.DB, w http.ResponseWriter, r *http.Request, PerfilFormData *model.ReqPerfil) (string, int) {
 
 	tx := DB.Begin()
 	defer func() {
@@ -65,6 +53,16 @@ func savePerfil(DB *gorm.DB, w http.ResponseWriter, r *http.Request, PerfilFormD
 		return val, http.StatusInternalServerError
 	}
 
+	val = createBackEnd(PerfilFormData, tx, DB, perfil)
+	if val != "" {
+		return val, http.StatusInternalServerError
+	}
+
+	val = createFrontEnd(PerfilFormData, tx, DB, perfil)
+	if val != "" {
+		return val, http.StatusInternalServerError
+	}
+
 	val, database := createDatabase(PerfilFormData, tx, perfil)
 	if val != "" {
 		return val, http.StatusInternalServerError
@@ -76,10 +74,10 @@ func savePerfil(DB *gorm.DB, w http.ResponseWriter, r *http.Request, PerfilFormD
 	}
 
 	tx.Commit()
-	return "Create perfil succeful", http.StatusOK
+	return "profile was created successfully", http.StatusOK
 }
 
-func createPerfil(PerfilFormData *ReqPerfil, tx *gorm.DB) (string, model.Perfil) {
+func createPerfil(PerfilFormData *model.ReqPerfil, tx *gorm.DB) (string, model.Perfil) {
 	perfil := model.Perfil{}
 	perfil.CompanyID = PerfilFormData.CompanyID
 	perfil.SystemOperativeID = PerfilFormData.SystemOperativeID
@@ -92,7 +90,49 @@ func createPerfil(PerfilFormData *ReqPerfil, tx *gorm.DB) (string, model.Perfil)
 	return "", perfil
 }
 
-func createDatabase(PerfilFormData *ReqPerfil, tx *gorm.DB, perfil model.Perfil) (string, model.DataBase) {
+func updatePerfilIDS(DB *gorm.DB, tx *gorm.DB, perfil model.Perfil, database model.DataBase) string {
+
+	DB.First(&perfil)
+	perfil.DataBaseID = &database.ID
+	perfil.ServerdeployPerfilID = &perfil.ID
+	perfil.BackEndID = &perfil.ID
+	perfil.FrontEndID = &perfil.ID
+
+	if perfil.ID == 0 {
+		tx.Rollback()
+		return "Error in system perfilID not exist"
+	}
+
+	if err := tx.Save(&perfil).Error; err != nil {
+		tx.Rollback()
+		fmt.Println(err)
+		return "Error in system update perfil ID"
+	}
+
+	return ""
+}
+
+func createServer(PerfilFormData *model.ReqPerfil, tx *gorm.DB, DB *gorm.DB, perfil model.Perfil) string {
+	var catServer []model.CatServer
+	var server []model.Servers
+	DB.Find(&catServer)
+	for _, v := range catServer {
+		var s model.Servers
+		s.PerfilID = perfil.ID
+		s.CatserverID = v.ID
+		s.Status = ItemExists(PerfilFormData.Server, v.ID)
+		server = append(server, s)
+	}
+
+	if err := tx.Create(&server).Error; err != nil {
+		tx.Rollback()
+		return "Error in system create server"
+	}
+
+	return ""
+}
+
+func createDatabase(PerfilFormData *model.ReqPerfil, tx *gorm.DB, perfil model.Perfil) (string, model.DataBase) {
 	database := model.DataBase{PerfilID: perfil.ID,
 		Mysql: PerfilFormData.Mysql, Mariadb: PerfilFormData.Mariadb, Postgresql: PerfilFormData.Postgresql,
 		Mongodb: PerfilFormData.Mongodb, Redis: PerfilFormData.Redis, Sqlite: PerfilFormData.Sqlite,
@@ -106,21 +146,41 @@ func createDatabase(PerfilFormData *ReqPerfil, tx *gorm.DB, perfil model.Perfil)
 	return "", database
 }
 
-func createServer(PerfilFormData *ReqPerfil, tx *gorm.DB, DB *gorm.DB, perfil model.Perfil) string {
-	var catServer []model.CatServer
-	var server []model.Servers
-	DB.Find(&catServer)
-	for _, v := range catServer {
-		var s model.Servers
+func createFrontEnd(PerfilFormData *model.ReqPerfil, tx *gorm.DB, DB *gorm.DB, perfil model.Perfil) string {
+	var catFrontEnd []model.CatFrontEnd
+	var frontEnd []model.FrontEnd
+	DB.Find(&catFrontEnd)
+	for _, v := range catFrontEnd {
+		var s model.FrontEnd
 		s.PerfilID = perfil.ID
-		s.CatserverID = v.ID
-		s.StatusServer = ItemExists(PerfilFormData.Server, v.ID)
-		server = append(server, s)
+		s.CatfrontendID = v.ID
+		s.Status = ItemExists(PerfilFormData.FrontEnd, v.ID)
+		frontEnd = append(frontEnd, s)
 	}
 
-	if err := tx.Create(&server).Error; err != nil {
+	if err := tx.Create(&frontEnd).Error; err != nil {
 		tx.Rollback()
-		return "Error in system create server"
+		return "Error in system create frontEnd"
+	}
+
+	return ""
+}
+
+func createBackEnd(PerfilFormData *model.ReqPerfil, tx *gorm.DB, DB *gorm.DB, perfil model.Perfil) string {
+	var catBackEnd []model.CatBackEnd
+	var backEnd []model.BackEnd
+	DB.Find(&catBackEnd)
+	for _, v := range catBackEnd {
+		var s model.BackEnd
+		s.PerfilID = perfil.ID
+		s.CatbackendID = v.ID
+		s.Status = ItemExists(PerfilFormData.BackEnd, v.ID)
+		backEnd = append(backEnd, s)
+	}
+
+	if err := tx.Create(&backEnd).Error; err != nil {
+		tx.Rollback()
+		return "Error in system create backEnd"
 	}
 
 	return ""
@@ -136,23 +196,4 @@ func ItemExists(arrayType interface{}, item interface{}) bool {
 	}
 
 	return false
-}
-
-func updatePerfilIDS(DB *gorm.DB, tx *gorm.DB, perfil model.Perfil, database model.DataBase) string {
-
-	DB.First(&perfil)
-	perfil.DataBaseID = &database.ID
-	perfil.ServerdeployPerfilID = &perfil.ID
-
-	if perfil.ID == 0 {
-		tx.Rollback()
-		return "Error in system perfilID not exist"
-	}
-
-	if err := tx.Save(&perfil).Error; err != nil {
-		tx.Rollback()
-		return "Error in system update perfil databaseID"
-	}
-
-	return ""
 }

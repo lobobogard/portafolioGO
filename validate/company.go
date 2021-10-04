@@ -8,7 +8,7 @@ import (
 	"github.com/portafolioLP/model"
 )
 
-func ValidatePerfil(UserFormData *model.Company, w http.ResponseWriter, r *http.Request) error {
+func ValidateCompany(UserFormData *model.Company, w http.ResponseWriter, r *http.Request) error {
 	validate = validator.New()
 
 	CompanyName := UserFormData.CompanyName
