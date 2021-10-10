@@ -15,7 +15,7 @@ type response struct {
 	FrontEnd           []model.CatFrontEnd
 }
 
-func CataloguePerfil(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
+func CatalogueCountry(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	var country []model.CatCountry
 	DB.Select("id", "country").Find(&country)
 

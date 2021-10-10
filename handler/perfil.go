@@ -78,9 +78,10 @@ func savePerfil(DB *gorm.DB, w http.ResponseWriter, r *http.Request, PerfilFormD
 }
 
 func createPerfil(PerfilFormData *model.ReqPerfil, tx *gorm.DB) (string, model.Perfil) {
+	fmt.Println("idcompany", PerfilFormData.CompanyID)
 	perfil := model.Perfil{}
 	perfil.CompanyID = PerfilFormData.CompanyID
-	perfil.SystemOperativeID = PerfilFormData.SystemOperativeID
+	perfil.CatSystemOperativeID = PerfilFormData.SystemOperativeID
 
 	if err := tx.Create(&perfil).Error; err != nil {
 		tx.Rollback()

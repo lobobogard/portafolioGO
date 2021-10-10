@@ -33,13 +33,13 @@ func ValidateCompany(UserFormData *model.Company, w http.ResponseWriter, r *http
 		return errors.New("the contact name can't pass 20 characters")
 	}
 
-	Country := UserFormData.Country
-	err = validate.Var(Country, "required")
+	Country_id := UserFormData.Country_id
+	err = validate.Var(Country_id, "required")
 	if err != nil {
 		return errors.New("the country is required")
 	}
 
-	err = validate.Var(Country, "numeric")
+	err = validate.Var(Country_id, "numeric")
 	if err != nil {
 		return errors.New("the country must be numeric")
 	}

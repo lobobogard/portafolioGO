@@ -50,7 +50,7 @@ func main() {
 
 	app.Router.HandleFunc("/user", app.createUser).Methods("POST")
 	app.Router.HandleFunc("/user", logging(app.getAllUser)).Methods("GET")
-	app.Router.HandleFunc("/user/{name}", app.getUser).Methods("GET")
+	app.Router.HandleFunc("/user/{name}", logging(app.getUser)).Methods("GET")
 	app.Router.HandleFunc("/user/{name}", app.updateUser).Methods("PUT")
 	app.Router.HandleFunc("/user/{name}", app.deleteUser).Methods("DELETE")
 	app.Router.HandleFunc("/login", app.login).Methods("POST")
@@ -62,12 +62,19 @@ func main() {
 	app.Router.HandleFunc("/validate", app.validate).Methods("POST")
 
 	// company
-	app.Router.HandleFunc("/cataloguePerfil", logging(app.cataloguePerfil)).Methods("GET")
+	app.Router.HandleFunc("/catalogueCountry", logging(app.catalogueCountry)).Methods("GET")
 	app.Router.HandleFunc("/catalogueCompany", logging(app.catalogueCompany)).Methods("GET")
 	app.Router.HandleFunc("/company", logging(app.createCompany)).Methods("POST")
+	app.Router.HandleFunc("/company", logging(app.findCompany)).Methods("GET")
+	app.Router.HandleFunc("/company/{companyID}", logging(app.updateCompany)).Methods("PUT")
+	app.Router.HandleFunc("/company/{companyID}", logging(app.deleteCompany)).Methods("DELETE")
+	app.Router.HandleFunc("/companyUpdate/{companyID}", logging(app.getCompanyUpdate)).Methods("GET")
 
 	// perfil
 	app.Router.HandleFunc("/perfil", logging(app.createPerfil)).Methods("POST")
+	app.Router.HandleFunc("/perfil", logging(app.findMountedPerfil)).Methods("GET")
+	app.Router.HandleFunc("/perfilFind", logging(app.findPerfil)).Methods("GET")
+	app.Router.HandleFunc("/perfil/{perfilID}", logging(app.deletePerfil)).Methods("DELETE")
 
 	http.Handle("/", app.Router)
 	// db.Conexion(app.Router)
@@ -77,40 +84,36 @@ func main() {
 
 }
 
-type prueba struct {
-	Dato1 string `json:"lobox"`
-	Name  string
-	Edad  int
+func (a *App) getCompanyUpdate(w http.ResponseWriter, r *http.Request) {
+	handler.GetCompanyUpdate(a.DB, w, r)
 }
 
-// func (a *App) createPerfil(w http.ResponseWriter, r *http.Request) {
-// 	body, err := ioutil.ReadAll(r.Body)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	var t prueba
-// 	err = json.Unmarshal(body, &t)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	fmt.Println("body", t)
-// 	prueba := [3]string{"cosas", "migas", "helos"}
-// 	value, _ := json.Marshal(prueba)
-// 	fmt.Println("result", value)
-// 	// w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(http.StatusAccepted)
-// 	w.Write(value)
-// 	// fmt.Println(value)
-// 	// handler.RespondJSON2(w, http.StatusAccepted, t)
-// 	// handler.CreateCompany(a.DB, w, r)
-// }
+func (a *App) updateCompany(w http.ResponseWriter, r *http.Request) {
+	handler.UpdateCompany(a.DB, w, r)
+}
+
+func (a *App) deleteCompany(w http.ResponseWriter, r *http.Request) {
+	handler.DeleteCompany(a.DB, w, r)
+}
 
 func (a *App) createPerfil(w http.ResponseWriter, r *http.Request) {
 	handler.CreatePerfil(a.DB, w, r)
 }
 
-func (a *App) cataloguePerfil(w http.ResponseWriter, r *http.Request) {
-	handler.CataloguePerfil(a.DB, w, r)
+func (a *App) deletePerfil(w http.ResponseWriter, r *http.Request) {
+	handler.DeletePerfil(a.DB, w, r)
+}
+
+func (a *App) findMountedPerfil(w http.ResponseWriter, r *http.Request) {
+	handler.FindMountedPerfil(a.DB, w, r)
+}
+
+func (a *App) findPerfil(w http.ResponseWriter, r *http.Request) {
+	handler.FindPerfil(a.DB, w, r)
+}
+
+func (a *App) catalogueCountry(w http.ResponseWriter, r *http.Request) {
+	handler.CatalogueCountry(a.DB, w, r)
 }
 
 func (a *App) catalogueCompany(w http.ResponseWriter, r *http.Request) {
@@ -119,6 +122,10 @@ func (a *App) catalogueCompany(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) createCompany(w http.ResponseWriter, r *http.Request) {
 	handler.CreateCompany(a.DB, w, r)
+}
+
+func (a *App) findCompany(w http.ResponseWriter, r *http.Request) {
+	handler.FindCompany(a.DB, w, r)
 }
 
 func (a *App) deleteTokenRefreshRedis(w http.ResponseWriter, r *http.Request) {
