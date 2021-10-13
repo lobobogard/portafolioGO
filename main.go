@@ -74,7 +74,9 @@ func main() {
 	app.Router.HandleFunc("/perfil", logging(app.createPerfil)).Methods("POST")
 	app.Router.HandleFunc("/perfil", logging(app.findMountedPerfil)).Methods("GET")
 	app.Router.HandleFunc("/perfilFind", logging(app.findPerfil)).Methods("GET")
+	app.Router.HandleFunc("/perfil/{perfilID}", logging(app.updatePerfil)).Methods("PUT")
 	app.Router.HandleFunc("/perfil/{perfilID}", logging(app.deletePerfil)).Methods("DELETE")
+	app.Router.HandleFunc("/mountPerfil/{perfilID}", logging(app.mountPerfil)).Methods("GET")
 
 	http.Handle("/", app.Router)
 	// db.Conexion(app.Router)
@@ -100,6 +102,10 @@ func (a *App) createPerfil(w http.ResponseWriter, r *http.Request) {
 	handler.CreatePerfil(a.DB, w, r)
 }
 
+func (a *App) updatePerfil(w http.ResponseWriter, r *http.Request) {
+	handler.UpdatePerfil(a.DB, w, r)
+}
+
 func (a *App) deletePerfil(w http.ResponseWriter, r *http.Request) {
 	handler.DeletePerfil(a.DB, w, r)
 }
@@ -118,6 +124,10 @@ func (a *App) catalogueCountry(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) catalogueCompany(w http.ResponseWriter, r *http.Request) {
 	handler.CatalogueCompany(a.DB, w, r)
+}
+
+func (a *App) mountPerfil(w http.ResponseWriter, r *http.Request) {
+	handler.MountPerfil(a.DB, w, r)
 }
 
 func (a *App) createCompany(w http.ResponseWriter, r *http.Request) {

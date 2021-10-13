@@ -26,7 +26,6 @@ func CreatePerfil(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	} else {
 		message, httpStatus := savePerfil(DB, w, r, PerfilFormData)
 		respondJSON(w, httpStatus, message)
-		// respondJSON(w, http.StatusAccepted, "the profile was created successfully")
 	}
 }
 
@@ -74,7 +73,7 @@ func savePerfil(DB *gorm.DB, w http.ResponseWriter, r *http.Request, PerfilFormD
 	}
 
 	tx.Commit()
-	return "profile was created successfully", http.StatusOK
+	return "perfil created successfully", http.StatusOK
 }
 
 func createPerfil(PerfilFormData *model.ReqPerfil, tx *gorm.DB) (string, model.Perfil) {
