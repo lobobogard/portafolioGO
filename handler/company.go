@@ -30,11 +30,18 @@ func CreateCompany(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+
 	if err := DB.Create(&CompanyFormData).Error; err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respondJSON(w, http.StatusCreated, "Created company success")
+
+	flagSendEmail, dataEmail := Emails(DB, w, r)
+	if flagSendEmail {
+		respondJSON(w, http.StatusCreated, dataEmail)
+	} else {
+		respondJSON(w, http.StatusCreated, "Created company success")
+	}
 }
 
 func UpdateCompany(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {

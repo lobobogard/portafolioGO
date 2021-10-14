@@ -34,12 +34,11 @@ func database() *gorm.DB {
 	Env := env.Env()
 	dbConfig := libs.Configure(Env)
 	DB := dbConfig.InitMysqlDB()
-	// DB.AutoMigrate(model.User{}, model.Company{}, model.Perfil{}, model.CatCountry{})
 	DB.AutoMigrate(
 		model.User{}, model.Company{}, model.Perfil{}, model.CatCountry{},
 		model.CatServer{}, model.CatSystemOperative{}, model.CatBackEnd{},
 		model.CatFrontEnd{}, model.DataBase{}, model.BackEnd{}, model.FrontEnd{},
-		model.Servers{},
+		model.Servers{}, model.ConfConcurrency{},
 	)
 	return DB
 }
@@ -55,11 +54,16 @@ func main() {
 	app.Router.HandleFunc("/user/{name}", app.deleteUser).Methods("DELETE")
 	app.Router.HandleFunc("/login", app.login).Methods("POST")
 	app.Router.HandleFunc("/logout", app.logout).Methods("POST")
-	app.Router.HandleFunc("/validate", app.validate).Methods("GET")
 
 	app.Router.HandleFunc("/tokenRefresh", app.tokenRefresh).Methods("POST")
 	app.Router.HandleFunc("/deleteTokenRefreshRedis", app.deleteTokenRefreshRedis).Methods("POST")
+	app.Router.HandleFunc("/validate", app.validate).Methods("GET")
 	app.Router.HandleFunc("/validate", app.validate).Methods("POST")
+
+	//concurrency
+	app.Router.HandleFunc("/concurrency", app.concurrency).Methods("POST")
+	app.Router.HandleFunc("/concurrency", app.getConcurrency).Methods("GET")
+	app.Router.HandleFunc("/email", app.email).Methods("POST")
 
 	// company
 	app.Router.HandleFunc("/catalogueCountry", logging(app.catalogueCountry)).Methods("GET")
@@ -84,6 +88,18 @@ func main() {
 	header, methods, origin, creds := cors()
 	log.Fatal(http.ListenAndServe(":3000", handlers.CORS(header, methods, origin, creds)(app.Router)))
 
+}
+
+func (a *App) concurrency(w http.ResponseWriter, r *http.Request) {
+	handler.Concurrency(a.DB, w, r)
+}
+
+func (a *App) getConcurrency(w http.ResponseWriter, r *http.Request) {
+	handler.GetConcurrency(a.DB, w, r)
+}
+
+func (a *App) email(w http.ResponseWriter, r *http.Request) {
+	handler.Email(a.DB, w, r)
 }
 
 func (a *App) getCompanyUpdate(w http.ResponseWriter, r *http.Request) {

@@ -15,11 +15,18 @@ type response struct {
 	FrontEnd           []model.CatFrontEnd        `json:"FrontEnd"`
 }
 
-func CatalogueCountry(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	var country []model.CatCountry
-	DB.Select("id", "country").Find(&country)
+type responseCompanyCreate struct {
+	ConfConcurrency model.ConfConcurrency
+	Country         []model.CatCountry
+}
 
-	respondJSON(w, http.StatusOK, country)
+func CatalogueCountry(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	var response responseCompanyCreate
+	userJWT := DecodeSessionUserJWT(w, r)
+	DB.Where("username", userJWT.Id).First(&response.ConfConcurrency)
+	DB.Select("id", "country").Find(&response.Country)
+
+	respondJSON(w, http.StatusOK, response)
 }
 
 func CatalogueCompany(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
