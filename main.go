@@ -82,12 +82,24 @@ func main() {
 	app.Router.HandleFunc("/perfil/{perfilID}", logging(app.deletePerfil)).Methods("DELETE")
 	app.Router.HandleFunc("/mountPerfil/{perfilID}", logging(app.mountPerfil)).Methods("GET")
 
+	// estadistic
+	app.Router.HandleFunc("/estadistic", logging(app.estadistic)).Methods("GET")
+	app.Router.HandleFunc("/mountEstadistic", logging(app.mountEstadistic)).Methods("GET")
+
 	http.Handle("/", app.Router)
 	// db.Conexion(app.Router)
 
 	header, methods, origin, creds := cors()
 	log.Fatal(http.ListenAndServe(":3000", handlers.CORS(header, methods, origin, creds)(app.Router)))
 
+}
+
+func (a *App) estadistic(w http.ResponseWriter, r *http.Request) {
+	handler.Estadistic(a.DB, w, r)
+}
+
+func (a *App) mountEstadistic(w http.ResponseWriter, r *http.Request) {
+	handler.MountEstadistic(a.DB, w, r)
 }
 
 func (a *App) concurrency(w http.ResponseWriter, r *http.Request) {

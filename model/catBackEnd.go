@@ -9,8 +9,7 @@ type CatBackEnd struct {
 
 // insert into cat_back_ends (back_end) values('golang');
 // insert into cat_back_ends (back_end) values('PHP');
-// insert into cat_back_ends (back_end) values('visual.net C#');
-// insert into cat_back_ends (back_end) values('scala');
+// insert into cat_back_ends (back_end) values('C# net');
 // insert into cat_back_ends (back_end) values('node.js');
 // insert into cat_back_ends (back_end) values('rust');
 
