@@ -69,20 +69,3 @@ func DecodeSessionUserDB(DB *gorm.DB, w http.ResponseWriter, r *http.Request) mo
 	DB.First(&user, "username = ?", userJWT.Username)
 	return user
 }
-
-// pendiente usando cookie
-// func DecodeCookieUserJWT(w http.ResponseWriter, r *http.Request) {
-// 	cookie, err := r.Cookie("tokenRefresh")
-// 	if err != nil {
-// 		jsonStatusUnauthorized("Not found cookie", w)
-// 		return
-// 	}
-// 	tokenStr := cookie.Value
-// 	token, _ := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-// 		return authentication.GetPublicKey(), nil
-// 	})
-// 	claims, _ := token.Claims.(jwt.MapClaims)
-// 	username := fmt.Sprintf("%v", claims["username"])
-// 	fmt.Println("session ", tokenStr)
-// 	fmt.Println("user", username)
-// }

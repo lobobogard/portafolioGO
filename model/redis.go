@@ -15,12 +15,6 @@ func RedisRefreshToken(user User, token string) {
 	if err != nil {
 		panic(err)
 	}
-
-	// val, err := rdb.Get(Ctx, user.Username).Result()
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(user.Username, val)
 }
 
 func RedisDeleteRefreshToken(username string) {

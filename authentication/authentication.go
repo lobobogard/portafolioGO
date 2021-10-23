@@ -11,13 +11,14 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/golang-jwt/jwt/request"
+	"github.com/joho/godotenv"
 	"github.com/portafolioLP/model"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-//crear llave privadas y publicas minuto 26
+//create keys privadas y publicas minuto 26
 var (
 	privateKey *rsa.PrivateKey // openssl genrsa -out private.rsa 1024
 	publicKey  *rsa.PublicKey  // openssl rsa -in private.rsa -pubout > public.rsa.pub
@@ -27,13 +28,34 @@ type TokenRefresh struct {
 	Token string
 }
 
+func Env() map[string]string {
+	var Env = make(map[string]string)
+	err := godotenv.Load()
+
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	Env, err = godotenv.Read()
+
+	if err != nil {
+		log.Fatal("Error reading .env file")
+	}
+
+	return Env
+
+}
+
 func init() {
-	privateBytes, err := ioutil.ReadFile("/home/terry/llavesRSA/private.rsa")
+	// Env := Env() // error testing
+	// privateBytes, err := ioutil.ReadFile(Env["PRIVATEKEY"]) // error testing
+	privateBytes, err := ioutil.ReadFile("/home/terry/llavesRSA/private.rsa") // for testing
 	if err != nil {
 		log.Fatal("Could not read private file", err)
 	}
 
-	publicBytes, err := ioutil.ReadFile("/home/terry/llavesRSA/public.rsa.pub")
+	// publicBytes, err := ioutil.ReadFile(Env["PUBLICKEY"]) // error testing
+	publicBytes, err := ioutil.ReadFile("/home/terry/llavesRSA/public.rsa.pub") // for testing
 	if err != nil {
 		log.Fatal("Could not read the public file", err)
 	}
@@ -58,11 +80,24 @@ func Login(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 	db.Where("username = ?", user.Username).First(&userDB)
 
-	if validateUser(user, userDB.Password) {
+	if ValidateUserLogin(user, userDB.Password) {
 		user.Password = ""
 		user.Role = userDB.Role
-		token := GenerateJWT(user)
-		GenerateRefreshJWT(w, user)
+		token, err := GenerateJWT(user)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		_, err = GenerateRefreshJWT(w, user)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(err.Error()))
+			return
+		}
 
 		result := model.ResponseToken{Token: token}
 		jsonResult, err := json.Marshal(result)
@@ -85,15 +120,7 @@ func Login(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func validateUser(user model.User, password string) bool {
-	if user.Username == "" {
-		return false
-	}
-	match := CheckPasswordHash(user.Password, password)
-	return match
-}
-
-func GenerateJWT(user model.User) string {
+func GenerateJWT(user model.User) (string, error) {
 	claims := model.Claim{
 		User: user,
 		StandardClaims: jwt.StandardClaims{
@@ -106,15 +133,14 @@ func GenerateJWT(user model.User) string {
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	result, err := token.SignedString(privateKey)
 	if err != nil {
-		fmt.Println(err)
-		log.Fatal("the token could not be signed", err)
+		return "", err
 	}
 
-	return result
+	return result, err
 
 }
 
-func GenerateRefreshJWT(w http.ResponseWriter, user model.User) string {
+func GenerateRefreshJWT(w http.ResponseWriter, user model.User) (string, error) {
 	uuid := uuid.NewV4().String()
 
 	claims := model.ClaimRefreshToken{
@@ -129,8 +155,7 @@ func GenerateRefreshJWT(w http.ResponseWriter, user model.User) string {
 	tokenRefresh := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	result, err := tokenRefresh.SignedString(privateKey)
 	if err != nil {
-		fmt.Println(err)
-		log.Fatal("the token could not be signed", err)
+		return "", err
 	}
 
 	// generate tokenRefresh cookie
@@ -146,7 +171,7 @@ func GenerateRefreshJWT(w http.ResponseWriter, user model.User) string {
 	// generate tokenRefresh in redis
 	model.RedisRefreshToken(user, result)
 
-	return result
+	return result, err
 
 }
 
@@ -184,15 +209,16 @@ func ValidateToken(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// func HashPassword(password string) (string, error) {
-// 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 0)
-// 	return string(bytes), err
-// }
+func ValidateUserLogin(user model.User, password string) bool {
+	if user.Username == "" {
+		return false
+	}
+	match := CheckPasswordHash(user.Password, password)
+	return match
+}
 
 func CheckPasswordHash(password, hash string) bool {
-	// err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	fmt.Println(err)
 	return err == nil
 }
 
@@ -204,7 +230,7 @@ func Logout(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 	cookie, err := r.Cookie("tokenRefresh")
 	if err != nil {
-		fmt.Printf("Cant find cookie :/\r\n")
+		fmt.Printf("Not cookie for delete status ok\n")
 		return
 	}
 	DeleteTokenRefreshRedisCookie(cookie.Value)
@@ -231,33 +257,6 @@ func DeleteTokenRefreshRedisCookie(tokenStr string) {
 	claims, _ := token.Claims.(jwt.MapClaims)
 
 	username := fmt.Sprintf("%v", claims["jti"])
-	fmt.Println(username)
 	model.RedisDeleteRefreshToken(username)
 
 }
-
-// func DeleteTokenRefreshRedis(w http.ResponseWriter, r *http.Request) {
-// 	defer r.Body.Close()
-// 	body, err := ioutil.ReadAll(r.Body)
-// 	if err != nil {
-// 		log.Printf("Reading body fail")
-// 	}
-
-// 	tokenBody := TokenRefresh{}
-// 	err = json.Unmarshal(body, &tokenBody)
-// 	if err != nil {
-// 		log.Printf("Reading body failed: %s", err)
-// 		return
-// 	}
-
-// 	tokenStr := tokenBody.Token
-// 	token, _ := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-// 		return GetPublicKey(), nil
-// 	})
-// 	claims, _ := token.Claims.(jwt.MapClaims)
-
-// 	username := fmt.Sprintf("%v", claims["jti"])
-// 	// fmt.Println(username)
-// 	model.RedisDeleteRefreshToken(username)
-
-// }

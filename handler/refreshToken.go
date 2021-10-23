@@ -75,8 +75,22 @@ func regenerateToken(db *gorm.DB, username string, w http.ResponseWriter) {
 	user.Password = ""
 	user.Role = userDB.Role
 	user.Username = userDB.Username
-	token := authentication.GenerateJWT(user)
-	tokenRefresh := authentication.GenerateRefreshJWT(w, userDB)
+	token, err := authentication.GenerateJWT(user)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	tokenRefresh, err := authentication.GenerateRefreshJWT(w, userDB)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(err.Error()))
+		return
+	}
+
 	model.RedisRefreshToken(user, tokenRefresh)
 	result := model.ResponseToken{Token: token}
 	jsonResult, err := json.Marshal(result)

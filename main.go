@@ -14,7 +14,6 @@ import (
 	"github.com/portafolioLP/middleware"
 	"github.com/portafolioLP/model"
 	"gorm.io/gorm"
-	// "github.com/portafolioLP/login"
 )
 
 type App struct {
@@ -47,23 +46,16 @@ func main() {
 	app.DB = database()
 	app.Router = mux.NewRouter()
 
+	// example rest api
 	app.Router.HandleFunc("/user", app.createUser).Methods("POST")
 	app.Router.HandleFunc("/user", logging(app.getAllUser)).Methods("GET")
 	app.Router.HandleFunc("/user/{name}", logging(app.getUser)).Methods("GET")
 	app.Router.HandleFunc("/user/{name}", app.updateUser).Methods("PUT")
 	app.Router.HandleFunc("/user/{name}", app.deleteUser).Methods("DELETE")
+
+	// login
 	app.Router.HandleFunc("/login", app.login).Methods("POST")
 	app.Router.HandleFunc("/logout", app.logout).Methods("POST")
-
-	app.Router.HandleFunc("/tokenRefresh", app.tokenRefresh).Methods("POST")
-	app.Router.HandleFunc("/deleteTokenRefreshRedis", app.deleteTokenRefreshRedis).Methods("POST")
-	app.Router.HandleFunc("/validate", app.validate).Methods("GET")
-	app.Router.HandleFunc("/validate", app.validate).Methods("POST")
-
-	//concurrency
-	app.Router.HandleFunc("/concurrency", app.concurrency).Methods("POST")
-	app.Router.HandleFunc("/concurrency", app.getConcurrency).Methods("GET")
-	app.Router.HandleFunc("/email", app.email).Methods("POST")
 
 	// company
 	app.Router.HandleFunc("/catalogueCountry", logging(app.catalogueCountry)).Methods("GET")
@@ -86,32 +78,54 @@ func main() {
 	app.Router.HandleFunc("/estadistic", logging(app.estadistic)).Methods("GET")
 	app.Router.HandleFunc("/mountEstadistic", logging(app.mountEstadistic)).Methods("GET")
 
+	// token
+	app.Router.HandleFunc("/tokenRefresh", app.tokenRefresh).Methods("POST")
+	app.Router.HandleFunc("/deleteTokenRefreshRedis", app.deleteTokenRefreshRedis).Methods("POST")
+
+	// validation
+	app.Router.HandleFunc("/validate", app.validate).Methods("GET")
+	app.Router.HandleFunc("/validate", app.validate).Methods("POST")
+
+	//concurrency
+	app.Router.HandleFunc("/concurrency", app.concurrency).Methods("POST")
+	app.Router.HandleFunc("/concurrency", app.getConcurrency).Methods("GET")
+	app.Router.HandleFunc("/email", app.email).Methods("POST")
+
 	http.Handle("/", app.Router)
 	// db.Conexion(app.Router)
 
 	header, methods, origin, creds := cors()
-	log.Fatal(http.ListenAndServe(":3000", handlers.CORS(header, methods, origin, creds)(app.Router)))
+	Env := env.Env()
+	log.Fatal(http.ListenAndServe(Env["PORTS"], handlers.CORS(header, methods, origin, creds)(app.Router)))
 
 }
 
-func (a *App) estadistic(w http.ResponseWriter, r *http.Request) {
-	handler.Estadistic(a.DB, w, r)
+func (a *App) getAllUser(w http.ResponseWriter, r *http.Request) {
+	handler.GetAllUsers(a.DB, w, r)
 }
 
-func (a *App) mountEstadistic(w http.ResponseWriter, r *http.Request) {
-	handler.MountEstadistic(a.DB, w, r)
+func (a *App) createUser(w http.ResponseWriter, r *http.Request) {
+	handler.User(a.DB, w, r)
 }
 
-func (a *App) concurrency(w http.ResponseWriter, r *http.Request) {
-	handler.Concurrency(a.DB, w, r)
+func (a *App) getUser(w http.ResponseWriter, r *http.Request) {
+	handler.GetUser(a.DB, w, r)
 }
 
-func (a *App) getConcurrency(w http.ResponseWriter, r *http.Request) {
-	handler.GetConcurrency(a.DB, w, r)
+func (a *App) updateUser(w http.ResponseWriter, r *http.Request) {
+	handler.UpdateUser(a.DB, w, r)
 }
 
-func (a *App) email(w http.ResponseWriter, r *http.Request) {
-	handler.Email(a.DB, w, r)
+func (a *App) deleteUser(w http.ResponseWriter, r *http.Request) {
+	handler.DeleteUser(a.DB, w, r)
+}
+
+func (a *App) login(w http.ResponseWriter, r *http.Request) {
+	authentication.Login(a.DB, w, r)
+}
+
+func (a *App) logout(w http.ResponseWriter, r *http.Request) {
+	authentication.Logout(a.DB, w, r)
 }
 
 func (a *App) getCompanyUpdate(w http.ResponseWriter, r *http.Request) {
@@ -124,6 +138,22 @@ func (a *App) updateCompany(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) deleteCompany(w http.ResponseWriter, r *http.Request) {
 	handler.DeleteCompany(a.DB, w, r)
+}
+
+func (a *App) createCompany(w http.ResponseWriter, r *http.Request) {
+	handler.CreateCompany(a.DB, w, r)
+}
+
+func (a *App) findCompany(w http.ResponseWriter, r *http.Request) {
+	handler.FindCompany(a.DB, w, r)
+}
+
+func (a *App) catalogueCountry(w http.ResponseWriter, r *http.Request) {
+	handler.CatalogueCountry(a.DB, w, r)
+}
+
+func (a *App) catalogueCompany(w http.ResponseWriter, r *http.Request) {
+	handler.CatalogueCompany(a.DB, w, r)
 }
 
 func (a *App) createPerfil(w http.ResponseWriter, r *http.Request) {
@@ -146,65 +176,40 @@ func (a *App) findPerfil(w http.ResponseWriter, r *http.Request) {
 	handler.FindPerfil(a.DB, w, r)
 }
 
-func (a *App) catalogueCountry(w http.ResponseWriter, r *http.Request) {
-	handler.CatalogueCountry(a.DB, w, r)
-}
-
-func (a *App) catalogueCompany(w http.ResponseWriter, r *http.Request) {
-	handler.CatalogueCompany(a.DB, w, r)
-}
-
 func (a *App) mountPerfil(w http.ResponseWriter, r *http.Request) {
 	handler.MountPerfil(a.DB, w, r)
 }
 
-func (a *App) createCompany(w http.ResponseWriter, r *http.Request) {
-	handler.CreateCompany(a.DB, w, r)
+func (a *App) estadistic(w http.ResponseWriter, r *http.Request) {
+	handler.Estadistic(a.DB, w, r)
 }
 
-func (a *App) findCompany(w http.ResponseWriter, r *http.Request) {
-	handler.FindCompany(a.DB, w, r)
-}
-
-func (a *App) deleteTokenRefreshRedis(w http.ResponseWriter, r *http.Request) {
-	handler.DeleteTokenRefreshRedis(a.DB, w, r)
+func (a *App) mountEstadistic(w http.ResponseWriter, r *http.Request) {
+	handler.MountEstadistic(a.DB, w, r)
 }
 
 func (a *App) tokenRefresh(w http.ResponseWriter, r *http.Request) {
 	handler.ValidateTokenRefresh(a.DB, w, r)
 }
 
+func (a *App) deleteTokenRefreshRedis(w http.ResponseWriter, r *http.Request) {
+	handler.DeleteTokenRefreshRedis(a.DB, w, r)
+}
+
 func (a *App) validate(w http.ResponseWriter, r *http.Request) {
 	authentication.ValidateToken(w, r)
 }
 
-func (a *App) login(w http.ResponseWriter, r *http.Request) {
-	// setupResponse(&w, r)
-	authentication.Login(a.DB, w, r)
+func (a *App) email(w http.ResponseWriter, r *http.Request) {
+	handler.Email(a.DB, w, r)
 }
 
-func (a *App) logout(w http.ResponseWriter, r *http.Request) {
-	authentication.Logout(a.DB, w, r)
+func (a *App) concurrency(w http.ResponseWriter, r *http.Request) {
+	handler.Concurrency(a.DB, w, r)
 }
 
-func (a *App) getAllUser(w http.ResponseWriter, r *http.Request) {
-	handler.GetAllUsers(a.DB, w, r)
-}
-
-func (a *App) createUser(w http.ResponseWriter, r *http.Request) {
-	handler.User(a.DB, w, r)
-}
-
-func (a *App) getUser(w http.ResponseWriter, r *http.Request) {
-	handler.GetUser(a.DB, w, r)
-}
-
-func (a *App) updateUser(w http.ResponseWriter, r *http.Request) {
-	handler.UpdateUser(a.DB, w, r)
-}
-
-func (a *App) deleteUser(w http.ResponseWriter, r *http.Request) {
-	handler.DeleteUser(a.DB, w, r)
+func (a *App) getConcurrency(w http.ResponseWriter, r *http.Request) {
+	handler.GetConcurrency(a.DB, w, r)
 }
 
 func cors() (handlers.CORSOption, handlers.CORSOption, handlers.CORSOption, handlers.CORSOption) {
@@ -229,12 +234,3 @@ func logging(next http.HandlerFunc) http.HandlerFunc {
 		}
 	}
 }
-
-// func setupResponse(w *http.ResponseWriter, req *http.Request) {
-// 	(*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
-// 	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-// 	(*w).Header().Set("Access-Control-Allow-Headers", "Access-Control-Allow-Credentials, Access-Control-Allow-Origin, withCredentials, Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, Origin, X-Requested-With")
-// 	(*w).Header().Set("Content-Type", "text/html; charset=utf-8; charset=ascii")
-// 	(*w).Header().Set("Access-Control-Allow-Credentials", "true")
-
-// }
