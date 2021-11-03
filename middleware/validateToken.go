@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/golang-jwt/jwt"
@@ -41,5 +42,24 @@ func ValidateToken(w http.ResponseWriter, r *http.Request) (bool, string) {
 	} else {
 		mensaje = "Unauthorized"
 		return false, mensaje
+	}
+}
+
+type Data struct {
+	Mensaje  string
+	Validate bool
+}
+
+func Logging(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var datos Data
+		datos.Validate, datos.Mensaje = ValidateToken(w, r)
+		if datos.Validate {
+			next.ServeHTTP(w, r)
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(datos)
+		}
 	}
 }

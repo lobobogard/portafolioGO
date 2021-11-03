@@ -130,11 +130,3 @@ func deletePerfil(DB *gorm.DB, perfilID string) error {
 
 	return tx.Commit().Error
 }
-
-// select perfils.id,companies.company_name,cat_system_operatives.system_operative, GROUP_CONCAT(cat_back_ends.back_end) as backend  from perfils
-// inner join back_ends on back_ends.perfil_id = perfils.back_end_id
-// inner join cat_back_ends on cat_back_ends.id = back_ends.catbackend_id
-// inner join cat_system_operatives on cat_system_operatives.id = perfils.cat_system_operative_id
-// inner join companies on companies.id = perfils.company_id
-// where company_id = 1 and back_ends.status = 1 and back_ends.catbackend_id in (1,2,3)
-// group by perfils.id,companies.company_name,cat_system_operatives.system_operative

@@ -1,15 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/portafolioLP/authentication"
+	"github.com/portafolioLP/corsConfig"
 	"github.com/portafolioLP/env"
-	"github.com/portafolioLP/handler"
 	"github.com/portafolioLP/libs"
 	"github.com/portafolioLP/middleware"
 	"github.com/portafolioLP/model"
@@ -48,8 +46,8 @@ func main() {
 
 	// example rest api
 	app.Router.HandleFunc("/user", app.createUser).Methods("POST")
-	app.Router.HandleFunc("/user", logging(app.getAllUser)).Methods("GET")
-	app.Router.HandleFunc("/user/{name}", logging(app.getUser)).Methods("GET")
+	app.Router.HandleFunc("/user", middleware.Logging(app.getAllUser)).Methods("GET")
+	app.Router.HandleFunc("/user/{name}", middleware.Logging(app.getUser)).Methods("GET")
 	app.Router.HandleFunc("/user/{name}", app.updateUser).Methods("PUT")
 	app.Router.HandleFunc("/user/{name}", app.deleteUser).Methods("DELETE")
 
@@ -58,25 +56,25 @@ func main() {
 	app.Router.HandleFunc("/logout", app.logout).Methods("POST")
 
 	// company
-	app.Router.HandleFunc("/catalogueCountry", logging(app.catalogueCountry)).Methods("GET")
-	app.Router.HandleFunc("/catalogueCompany", logging(app.catalogueCompany)).Methods("GET")
-	app.Router.HandleFunc("/company", logging(app.createCompany)).Methods("POST")
-	app.Router.HandleFunc("/company", logging(app.findCompany)).Methods("GET")
-	app.Router.HandleFunc("/company/{companyID}", logging(app.updateCompany)).Methods("PUT")
-	app.Router.HandleFunc("/company/{companyID}", logging(app.deleteCompany)).Methods("DELETE")
-	app.Router.HandleFunc("/companyUpdate/{companyID}", logging(app.getCompanyUpdate)).Methods("GET")
+	app.Router.HandleFunc("/catalogueCountry", middleware.Logging(app.catalogueCountry)).Methods("GET")
+	app.Router.HandleFunc("/catalogueCompany", middleware.Logging(app.catalogueCompany)).Methods("GET")
+	app.Router.HandleFunc("/company", middleware.Logging(app.createCompany)).Methods("POST")
+	app.Router.HandleFunc("/company", middleware.Logging(app.findCompany)).Methods("GET")
+	app.Router.HandleFunc("/company/{companyID}", middleware.Logging(app.updateCompany)).Methods("PUT")
+	app.Router.HandleFunc("/company/{companyID}", middleware.Logging(app.deleteCompany)).Methods("DELETE")
+	app.Router.HandleFunc("/companyUpdate/{companyID}", middleware.Logging(app.getCompanyUpdate)).Methods("GET")
 
 	// perfil
-	app.Router.HandleFunc("/perfil", logging(app.createPerfil)).Methods("POST")
-	app.Router.HandleFunc("/perfil", logging(app.findMountedPerfil)).Methods("GET")
-	app.Router.HandleFunc("/perfilFind", logging(app.findPerfil)).Methods("GET")
-	app.Router.HandleFunc("/perfil/{perfilID}", logging(app.updatePerfil)).Methods("PUT")
-	app.Router.HandleFunc("/perfil/{perfilID}", logging(app.deletePerfil)).Methods("DELETE")
-	app.Router.HandleFunc("/mountPerfil/{perfilID}", logging(app.mountPerfil)).Methods("GET")
+	app.Router.HandleFunc("/perfil", middleware.Logging(app.createPerfil)).Methods("POST")
+	app.Router.HandleFunc("/perfil", middleware.Logging(app.findMountedPerfil)).Methods("GET")
+	app.Router.HandleFunc("/perfilFind", middleware.Logging(app.findPerfil)).Methods("GET")
+	app.Router.HandleFunc("/perfil/{perfilID}", middleware.Logging(app.updatePerfil)).Methods("PUT")
+	app.Router.HandleFunc("/perfil/{perfilID}", middleware.Logging(app.deletePerfil)).Methods("DELETE")
+	app.Router.HandleFunc("/mountPerfil/{perfilID}", middleware.Logging(app.mountPerfil)).Methods("GET")
 
 	// estadistic
-	app.Router.HandleFunc("/estadistic", logging(app.estadistic)).Methods("GET")
-	app.Router.HandleFunc("/mountEstadistic", logging(app.mountEstadistic)).Methods("GET")
+	app.Router.HandleFunc("/estadistic", middleware.Logging(app.estadistic)).Methods("GET")
+	app.Router.HandleFunc("/mountEstadistic", middleware.Logging(app.mountEstadistic)).Methods("GET")
 
 	// token
 	app.Router.HandleFunc("/tokenRefresh", app.tokenRefresh).Methods("POST")
@@ -92,145 +90,9 @@ func main() {
 	app.Router.HandleFunc("/email", app.email).Methods("POST")
 
 	http.Handle("/", app.Router)
-	// db.Conexion(app.Router)
 
-	header, methods, origin, creds := cors()
+	header, methods, origin, creds := corsConfig.Cors()
 	Env := env.Env()
 	log.Fatal(http.ListenAndServe(Env["PORTS"], handlers.CORS(header, methods, origin, creds)(app.Router)))
 
-}
-
-func (a *App) getAllUser(w http.ResponseWriter, r *http.Request) {
-	handler.GetAllUsers(a.DB, w, r)
-}
-
-func (a *App) createUser(w http.ResponseWriter, r *http.Request) {
-	handler.User(a.DB, w, r)
-}
-
-func (a *App) getUser(w http.ResponseWriter, r *http.Request) {
-	handler.GetUser(a.DB, w, r)
-}
-
-func (a *App) updateUser(w http.ResponseWriter, r *http.Request) {
-	handler.UpdateUser(a.DB, w, r)
-}
-
-func (a *App) deleteUser(w http.ResponseWriter, r *http.Request) {
-	handler.DeleteUser(a.DB, w, r)
-}
-
-func (a *App) login(w http.ResponseWriter, r *http.Request) {
-	authentication.Login(a.DB, w, r)
-}
-
-func (a *App) logout(w http.ResponseWriter, r *http.Request) {
-	authentication.Logout(a.DB, w, r)
-}
-
-func (a *App) getCompanyUpdate(w http.ResponseWriter, r *http.Request) {
-	handler.GetCompanyUpdate(a.DB, w, r)
-}
-
-func (a *App) updateCompany(w http.ResponseWriter, r *http.Request) {
-	handler.UpdateCompany(a.DB, w, r)
-}
-
-func (a *App) deleteCompany(w http.ResponseWriter, r *http.Request) {
-	handler.DeleteCompany(a.DB, w, r)
-}
-
-func (a *App) createCompany(w http.ResponseWriter, r *http.Request) {
-	handler.CreateCompany(a.DB, w, r)
-}
-
-func (a *App) findCompany(w http.ResponseWriter, r *http.Request) {
-	handler.FindCompany(a.DB, w, r)
-}
-
-func (a *App) catalogueCountry(w http.ResponseWriter, r *http.Request) {
-	handler.CatalogueCountry(a.DB, w, r)
-}
-
-func (a *App) catalogueCompany(w http.ResponseWriter, r *http.Request) {
-	handler.CatalogueCompany(a.DB, w, r)
-}
-
-func (a *App) createPerfil(w http.ResponseWriter, r *http.Request) {
-	handler.CreatePerfil(a.DB, w, r)
-}
-
-func (a *App) updatePerfil(w http.ResponseWriter, r *http.Request) {
-	handler.UpdatePerfil(a.DB, w, r)
-}
-
-func (a *App) deletePerfil(w http.ResponseWriter, r *http.Request) {
-	handler.DeletePerfil(a.DB, w, r)
-}
-
-func (a *App) findMountedPerfil(w http.ResponseWriter, r *http.Request) {
-	handler.FindMountedPerfil(a.DB, w, r)
-}
-
-func (a *App) findPerfil(w http.ResponseWriter, r *http.Request) {
-	handler.FindPerfil(a.DB, w, r)
-}
-
-func (a *App) mountPerfil(w http.ResponseWriter, r *http.Request) {
-	handler.MountPerfil(a.DB, w, r)
-}
-
-func (a *App) estadistic(w http.ResponseWriter, r *http.Request) {
-	handler.Estadistic(a.DB, w, r)
-}
-
-func (a *App) mountEstadistic(w http.ResponseWriter, r *http.Request) {
-	handler.MountEstadistic(a.DB, w, r)
-}
-
-func (a *App) tokenRefresh(w http.ResponseWriter, r *http.Request) {
-	handler.ValidateTokenRefresh(a.DB, w, r)
-}
-
-func (a *App) deleteTokenRefreshRedis(w http.ResponseWriter, r *http.Request) {
-	handler.DeleteTokenRefreshRedis(a.DB, w, r)
-}
-
-func (a *App) validate(w http.ResponseWriter, r *http.Request) {
-	authentication.ValidateToken(w, r)
-}
-
-func (a *App) email(w http.ResponseWriter, r *http.Request) {
-	handler.Email(a.DB, w, r)
-}
-
-func (a *App) concurrency(w http.ResponseWriter, r *http.Request) {
-	handler.Concurrency(a.DB, w, r)
-}
-
-func (a *App) getConcurrency(w http.ResponseWriter, r *http.Request) {
-	handler.GetConcurrency(a.DB, w, r)
-}
-
-func cors() (handlers.CORSOption, handlers.CORSOption, handlers.CORSOption, handlers.CORSOption) {
-	enviroment := env.Env()
-	header := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization", "Access-Control-Allow-Credentials", "Access-Control-Allow-Origin"})
-	methods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
-	origin := handlers.AllowedOrigins([]string{enviroment["ALLOWEDORIGINS"]})
-	creds := handlers.AllowCredentials()
-	return header, methods, origin, creds
-}
-
-func logging(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var datos Data
-		datos.Validate, datos.Mensaje = middleware.ValidateToken(w, r)
-		if datos.Validate {
-			next.ServeHTTP(w, r)
-		} else {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(datos)
-		}
-	}
 }

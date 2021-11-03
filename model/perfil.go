@@ -13,5 +13,3 @@ type Perfil struct {
 	BackEndID            *uint              `gorm:"null" json:"backEndID"`
 	FrontEndID           *uint              `gorm:"null" json:"frontEndID"`
 }
-
-//`gorm:"foreignKey:CompanyID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`

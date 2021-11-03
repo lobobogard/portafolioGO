@@ -44,7 +44,6 @@ func sendEmail(name string, email string, times time.Duration) DataEmail {
 	dataEmail.Email = email
 	dataEmail.StartTime = time.Now().Unix()
 	time.Sleep(times * time.Second)
-	// time.Sleep(0 * time.Second)
 	dataEmail.FinishTime = time.Now().Unix()
 	return dataEmail
 }
@@ -55,7 +54,6 @@ func sendEmailConcurrency(chanDataEmail chan<- DataEmail, name string, email str
 	dataEmail.Email = email
 	dataEmail.StartTime = time.Now().Unix()
 	time.Sleep(times * time.Second)
-	// time.Sleep(0 * time.Second)
 	dataEmail.FinishTime = time.Now().Unix()
 	chanDataEmail <- dataEmail
 }
