@@ -51,12 +51,14 @@ func Env() map[string]string {
 func init() {
 	Env := Env()                                            // error testing
 	privateBytes, err := ioutil.ReadFile(Env["PRIVATEKEY"]) // error testing
+	// privateBytes, err := ioutil.ReadFile("/home/terry/llavesRSA/private.rsa") // for testing
 	// privateBytes, err := ioutil.ReadFile("/usr/llavesRSA/private.rsa") // for testing
 	if err != nil {
 		log.Fatal("Could not read private file", err)
 	}
 
 	publicBytes, err := ioutil.ReadFile(Env["PUBLICKEY"]) // error testing
+	// publicBytes, err := ioutil.ReadFile("/home/terry/llavesRSA/public.rsa.pub") // for testing
 	// publicBytes, err := ioutil.ReadFile("/usr/llavesRSA/public.rsa.pub") // for testing
 	if err != nil {
 		log.Fatal("Could not read the public file", err)

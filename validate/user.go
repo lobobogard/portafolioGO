@@ -7,14 +7,22 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/portafolioLP/model"
+	"gorm.io/gorm"
 )
 
 var validate *validator.Validate
 
-func ValidateUser(UserFormData *model.UserFormData, w http.ResponseWriter, r *http.Request) error {
+func ValidateUser(UserFormData *model.UserFormData, DB *gorm.DB, w http.ResponseWriter, r *http.Request) error {
 	validate = validator.New()
 
 	myUsername := UserFormData.Username
+
+	var user model.User
+	DB.Where("username = ?", myUsername).First(&user)
+	if user.Username != "" {
+		return errors.New("the user name exist")
+	}
+
 	err := validate.Var(myUsername, "required")
 	if err != nil {
 		return errors.New("the user name is required")

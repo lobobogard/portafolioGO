@@ -17,7 +17,6 @@ func Env() map[string]string {
 	}
 
 	envPath, _ := filepath.Abs("/root/.env")
-
 	Env, err = godotenv.Read(envPath)
 	if err != nil {
 		log.Fatal("error reading .env env.go ", err)
