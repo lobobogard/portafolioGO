@@ -39,6 +39,30 @@ func DecodeSessionUserJWT(w http.ResponseWriter, r *http.Request) model.Claim {
 	return user
 }
 
+func DecodeSessionUserNotVerificateJWT(w http.ResponseWriter, r *http.Request) model.Claim {
+	tokenSession := r.Header.Get("Authorization")
+	tokenStr := strings.Split(tokenSession, "Bearer ")[1]
+
+	claims := jwt.MapClaims{}
+	_, _ = jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		return authentication.GetPublicKey(), nil
+	})
+
+	var tokenMap = make(map[string]interface{})
+	for key, val := range claims {
+		tokenMap[key] = val
+	}
+
+	jsonString, err := json.Marshal(tokenMap)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Error encoding user name")
+	}
+
+	user := model.Claim{}
+	json.Unmarshal(jsonString, &user)
+	return user
+}
+
 func DecodeSessionUserDB(DB *gorm.DB, w http.ResponseWriter, r *http.Request) model.User {
 	tokenSession := r.Header.Get("Authorization")
 	tokenStr := strings.Split(tokenSession, "Bearer ")[1]
@@ -49,7 +73,7 @@ func DecodeSessionUserDB(DB *gorm.DB, w http.ResponseWriter, r *http.Request) mo
 	})
 
 	if ok != nil {
-		respondError(w, http.StatusBadRequest, "incorrect token session")
+		respondError(w, http.StatusBadRequest, "incorrect token session DB")
 	}
 
 	var tokenMap = make(map[string]interface{})

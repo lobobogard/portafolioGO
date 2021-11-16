@@ -7,11 +7,13 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/golang-jwt/jwt/request"
 	"github.com/joho/godotenv"
+	"github.com/portafolioLP/env"
 	"github.com/portafolioLP/model"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -20,7 +22,7 @@ import (
 
 //create keys privadas y publicas minuto 26
 var (
-	privateKey *rsa.PrivateKey // openssl genrsa -out private.rsa 1024
+	privateKey *rsa.PrivateKey // openssl genrsa -out private.rsa 2048 / 1024
 	publicKey  *rsa.PublicKey  // openssl rsa -in private.rsa -pubout > public.rsa.pub
 )
 
@@ -30,16 +32,16 @@ type TokenRefresh struct {
 
 func Env() map[string]string {
 	var Env = make(map[string]string)
-	err := godotenv.Load()
+	err := godotenv.Load(filepath.Join("/root/", ".env"))
 
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal("Error loading .env authentificaction.go ", err)
 	}
 
-	Env, err = godotenv.Read()
-
+	envPath, _ := filepath.Abs("/root/.env")
+	Env, err = godotenv.Read(envPath)
 	if err != nil {
-		log.Fatal("Error reading .env file")
+		log.Fatal("error reading .env authentificaction.go ", err)
 	}
 
 	return Env
@@ -47,15 +49,15 @@ func Env() map[string]string {
 }
 
 func init() {
-	// Env := Env() // error testing
-	// privateBytes, err := ioutil.ReadFile(Env["PRIVATEKEY"]) // error testing
-	privateBytes, err := ioutil.ReadFile("/home/terry/llavesRSA/private.rsa") // for testing
+	Env := Env()                                            // error testing
+	privateBytes, err := ioutil.ReadFile(Env["PRIVATEKEY"]) // error testing
+	// privateBytes, err := ioutil.ReadFile("/usr/llavesRSA/private.rsa") // for testing
 	if err != nil {
 		log.Fatal("Could not read private file", err)
 	}
 
-	// publicBytes, err := ioutil.ReadFile(Env["PUBLICKEY"]) // error testing
-	publicBytes, err := ioutil.ReadFile("/home/terry/llavesRSA/public.rsa.pub") // for testing
+	publicBytes, err := ioutil.ReadFile(Env["PUBLICKEY"]) // error testing
+	// publicBytes, err := ioutil.ReadFile("/usr/llavesRSA/public.rsa.pub") // for testing
 	if err != nil {
 		log.Fatal("Could not read the public file", err)
 	}
@@ -82,7 +84,7 @@ func Login(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 	if ValidateUserLogin(user, userDB.Password) {
 		user.Password = ""
-		user.Role = userDB.Role
+		user.Role = "USER" // userDB.Role
 		token, err := GenerateJWT(user)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -125,7 +127,7 @@ func GenerateJWT(user model.User) (string, error) {
 		User: user,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Minute * 1).Unix(), // 1 minute
-			Issuer:    "Access Token",
+			Issuer:    "access token",
 			Id:        user.Username,
 		},
 	}
@@ -159,11 +161,15 @@ func GenerateRefreshJWT(w http.ResponseWriter, user model.User) (string, error) 
 	}
 
 	// generate tokenRefresh cookie
+	Env := env.Env()
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "tokenRefresh",
+		Path:     "/",
+		Domain:   Env["DOMAINCOOKIE"],
 		Value:    result,
 		Expires:  time.Now().Add(8 * time.Hour),
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteNoneMode,
 		HttpOnly: true,
 		Secure:   true,
 	})

@@ -2,22 +2,25 @@ package env
 
 import (
 	"log"
+	"path/filepath"
 
 	"github.com/joho/godotenv"
 )
 
 func Env() map[string]string {
 	var Env = make(map[string]string)
-	err := godotenv.Load()
+
+	err := godotenv.Load(filepath.Join("/root/", ".env"))
 
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal("Error loading .env emv.go", err)
 	}
 
-	Env, err = godotenv.Read()
+	envPath, _ := filepath.Abs("/root/.env")
 
+	Env, err = godotenv.Read(envPath)
 	if err != nil {
-		log.Fatal("Error reading .env file")
+		log.Fatal("error reading .env env.go ", err)
 	}
 
 	return Env

@@ -9,14 +9,14 @@ import (
 )
 
 func GetConcurrency(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	userJWT := DecodeSessionUserJWT(w, r)
+	userJWT := DecodeSessionUserNotVerificateJWT(w, r)
 	var concurrency model.ConfConcurrency
 	DB.Where("username", userJWT.Id).First(&concurrency)
 	respondJSON(w, http.StatusCreated, concurrency)
 }
 
 func Email(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	userJWT := DecodeSessionUserJWT(w, r)
+	userJWT := DecodeSessionUserNotVerificateJWT(w, r)
 	var ConcurrencyFormData model.ConfConcurrency
 
 	decoder := json.NewDecoder(r.Body)
@@ -41,7 +41,7 @@ func Email(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 }
 
 func Concurrency(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	userJWT := DecodeSessionUserJWT(w, r)
+	userJWT := DecodeSessionUserNotVerificateJWT(w, r)
 	var ConcurrencyFormData model.ConfConcurrency
 
 	decoder := json.NewDecoder(r.Body)

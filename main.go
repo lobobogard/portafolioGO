@@ -19,6 +19,9 @@ type App struct {
 	DB     *gorm.DB
 }
 
+var EnvRoute string = "/home/terry/golang/portaFolioGo/"
+var EnvFile string = "/home/terry/golang/portaFolioGo/.env"
+
 type Data struct {
 	Mensaje  string
 	Validate bool
@@ -45,7 +48,7 @@ func main() {
 	app.Router = mux.NewRouter()
 
 	// example rest api
-	app.Router.HandleFunc("/user", app.createUser).Methods("POST")
+	app.Router.HandleFunc("/user", app.AppcreateUser).Methods("POST")
 	app.Router.HandleFunc("/user", middleware.Logging(app.getAllUser)).Methods("GET")
 	app.Router.HandleFunc("/user/{name}", middleware.Logging(app.getUser)).Methods("GET")
 	app.Router.HandleFunc("/user/{name}", app.updateUser).Methods("PUT")
